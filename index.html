@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="sv">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123e35">
+<title>SW Calendar · Tid per kund</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f0;color:#18362d;font:16px system-ui,-apple-system,sans-serif}main{max-width:760px;margin:auto;padding:28px 18px calc(30px + env(safe-area-inset-bottom))}h1{font-size:32px;margin:4px 0}h2{font-size:19px}p{line-height:1.5}.eyebrow{font-size:12px;letter-spacing:2px;font-weight:700}.muted{color:#52675e;font-size:14px}.card{background:white;border:1px solid #dce4d9;border-radius:20px;padding:20px;margin:20px 0;box-shadow:0 5px 20px #16392b06}label{display:block;font-weight:600;margin-bottom:8px}input,select,button{font:inherit;min-height:48px;border-radius:10px;border:1px solid #a6b8ab;padding:10px;max-width:100%}input,select{width:100%;background:white;color:#18362d}button{background:#eaf0e8;color:#18362d;cursor:pointer;font-weight:600}button:disabled{opacity:.45;cursor:default}.primary{background:#123e35;color:white;border-color:#123e35;width:100%;margin-top:16px}.stop{background:#934736;border-color:#934736}.row{display:flex;gap:10px;align-items:center}.row>*{min-width:0}.row input{flex:1}.timer{font-size:40px;font-variant-numeric:tabular-nums;margin:16px 0 4px}.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.day{min-height:59px;background:#f3f5f0;border-radius:8px;padding:6px 2px;text-align:center;font-size:13px}.day small{display:block;font-size:10px;margin-top:5px}.today{outline:2px solid #407b57}.weekday{text-align:center;font-size:11px;padding:8px 0}.total{font-size:28px;font-weight:700}.session{padding:12px 0;border-bottom:1px solid #e4e9e0}.session strong{display:block;overflow-wrap:anywhere}.session small{color:#52675e}.message{padding:12px;border-radius:10px;background:#fff1d7;color:#694919;margin:12px 0}.backup{display:flex;flex-wrap:wrap;gap:10px}.backup>*{flex:1}footer{font-size:13px;color:#52675e}#importFile{display:none}@media(max-width:400px){.card{padding:16px}.day small{font-size:9px}}
+</style>
+<main>
+<header><div class="eyebrow">SW CALENDAR · TESTVERSION</div><h1>Tid för det som räknas.</h1><p class="muted">Stämpla arbetstid per kund. Sparas i den här webbläsaren.</p></header>
+<div id="message" class="message" role="status" hidden></div>
+<section class="card"><label for="customer">Kund</label><select id="customer"></select>
+<form id="addForm" class="row" style="margin-top:12px"><input id="newCustomer" placeholder="Ny kund" aria-label="Namn på ny kund" maxlength="80" required><button>Lägg till</button></form>
+<div id="timer" class="timer">00:00:00</div><div id="running" class="muted">Redo för ett nytt arbetspass</div><button id="clock" class="primary">Stämpla in</button></section>
+<section class="card"><div class="row"><h2 style="flex:1">Månadskalender</h2><button id="prev" aria-label="Föregående månad">‹</button><button id="next" aria-label="Nästa månad">›</button></div><p id="monthLabel"></p><div id="calendar" class="grid"></div><p class="muted">Avslutade pass för vald kund, fördelade över lokala kalenderdagar.</p><div id="total" class="total"></div></section>
+<section class="card"><h2>Arbetspass</h2><div id="sessions"></div></section>
+<section class="card"><h2>Säkerhetskopia</h2><p class="muted">Exportera regelbundet. Rensad webbläsardata kan ta bort dina tider. Import ersätter den sparade informationen.</p><div class="backup"><button id="export">Exportera JSON</button><button id="import">Importera JSON</button></div><input id="importFile" type="file" accept="application/json,.json"></section>
+<footer>Lokal prototyp · Ingen Google-sync eller delning mellan enheter. Använd en webbläsarflik åt gången. Test med verklig iPhone återstår.</footer>
+</main>
+<script>
+'use strict';
+const KEY='sw-calendar-v1';
+const empty=()=>({version:1,customers:[],sessions:[],active:null});
+function validate(value){
+ if(!value||value.version!==1||!Array.isArray(value.customers)||!Array.isArray(value.sessions)||value.customers.length>500||value.sessions.length>20000)throw Error('Ogiltig säkerhetskopia.');
+ const ids=new Set(), sessionIds=new Set();
+ const id=x=>typeof x==='string'&&x.length>0&&x.length<=100;
+ const time=x=>Number.isSafeInteger(x)&&x>=0&&x<=8640000000000000;
+ const customers=value.customers.map(c=>{if(!c||!id(c.id)||ids.has(c.id)||typeof c.name!=='string'||!c.name.trim()||c.name.length>80)throw Error('Ogiltig kund.');ids.add(c.id);return{id:c.id,name:c.name.trim()};});
+ const sessions=value.sessions.map(s=>{if(!s||!id(s.id)||sessionIds.has(s.id)||!ids.has(s.customer)||!time(s.start)||!time(s.end)||s.end<s.start)throw Error('Ogiltigt arbetspass.');sessionIds.add(s.id);return{id:s.id,customer:s.customer,start:s.start,end:s.end};});
+ let active=null;
+ if(value.active!==null){const a=value.active;if(!a||!ids.has(a.customer)||!time(a.start))throw Error('Ogiltigt aktivt pass.');active={customer:a.customer,start:a.start};}
+ return {version:1,customers,sessions,active};
+}
+function overlap(s,start,end){return Math.max(0,Math.min(s.end,end)-Math.max(s.start,start));}
+const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+const $=id=>document.getElementById(id), duration=ms=>{const m=Math.floor(ms/60000);return `${Math.floor(m/60)} h ${m%60} min`;};
+let state=empty(), selected='', raw=null, blocked=false, month=new Date();month=new Date(month.getFullYear(),month.getMonth(),1);
+function notice(text){$('message').textContent=text;$('message').hidden=!text;}
+try{raw=localStorage.getItem(KEY);if(raw!==null)state=validate(JSON.parse(raw));}catch(e){blocked=true;notice('Sparad data kunde inte läsas. Inget har skrivits över. Importera en giltig säkerhetskopia eller kontrollera webbläsarens lagring.');}
+function save(next,replace=false){
+ try{next=validate(next);if(!replace&&localStorage.getItem(KEY)!==raw)throw Error('Data ändrades i en annan flik. Ladda om innan du fortsätter.');const encoded=JSON.stringify(next);localStorage.setItem(KEY,encoded);raw=encoded;state=next;blocked=false;notice('');render();return true;}catch(e){notice(e.message==='Data ändrades i en annan flik. Ladda om innan du fortsätter.'?e.message:'Ändringen kunde inte sparas. Din tidigare data är kvar. Kontrollera lagring eller importfil.');return false;}
+}
+function render(){
+ if(!state.customers.some(c=>c.id===selected))selected=state.active?.customer||state.customers[0]?.id||'';
+ $('customer').replaceChildren();for(const c of state.customers){const o=document.createElement('option');o.value=c.id;o.textContent=c.name;$('customer').append(o);}$('customer').value=selected;
+ $('customer').disabled=!!state.active||blocked;$('clock').disabled=blocked||!selected;$('clock').textContent=state.active?'Stämpla ut':'Stämpla in';$('clock').classList.toggle('stop',!!state.active);$('addForm').querySelector('button').disabled=blocked;
+ $('monthLabel').textContent=month.toLocaleDateString('sv-SE',{month:'long',year:'numeric'});
+ const end=new Date(month.getFullYear(),month.getMonth()+1,1), sessions=state.sessions.filter(s=>s.customer===selected);
+ $('total').textContent=duration(sessions.reduce((n,s)=>n+overlap(s,+month,+end),0));$('calendar').replaceChildren();
+ for(const label of ['Mån','Tis','Ons','Tor','Fre','Lör','Sön']){const e=document.createElement('div');e.className='weekday';e.textContent=label;$('calendar').append(e);}
+ for(let n=0;n<(month.getDay()+6)%7;n++)$('calendar').append(document.createElement('div'));
+ const today=new Date();for(let day=1;day<=new Date(month.getFullYear(),month.getMonth()+1,0).getDate();day++){const start=new Date(month.getFullYear(),month.getMonth(),day),stop=new Date(month.getFullYear(),month.getMonth(),day+1);const e=document.createElement('div');e.className='day';if(start.toDateString()===today.toDateString())e.classList.add('today');e.textContent=day;const small=document.createElement('small'),ms=sessions.reduce((n,s)=>n+overlap(s,+start,+stop),0);small.textContent=ms?duration(ms):'—';e.append(small);$('calendar').append(e);}
+ $('sessions').replaceChildren();const visible=sessions.filter(s=>s.start<+end&&s.end>=+month).sort((a,b)=>b.start-a.start);
+ if(!visible.length)$('sessions').textContent='Inga avslutade pass för den här kunden och månaden.';
+ for(const s of visible){const e=document.createElement('div');e.className='session';const title=document.createElement('strong');title.textContent=duration(s.end-s.start);const detail=document.createElement('small');detail.textContent=new Date(s.start).toLocaleString('sv-SE')+' → '+new Date(s.end).toLocaleString('sv-SE');e.append(title,detail);$('sessions').append(e);}tick();
+}
+function tick(){const ms=state.active?Math.max(0,Date.now()-state.active.start):0;const sec=Math.floor(ms/1000);$('timer').textContent=[Math.floor(sec/3600),Math.floor(sec/60)%60,sec%60].map(n=>String(n).padStart(2,'0')).join(':');$('running').textContent=state.active?'Pågår · '+state.customers.find(c=>c.id===state.active.customer).name:'Redo för ett nytt arbetspass';}
+$('addForm').addEventListener('submit',e=>{e.preventDefault();if(blocked)return;const name=$('newCustomer').value.trim();if(!name)return;const customer={id:uid(),name};if(save({...state,customers:[...state.customers,customer]})){if(!state.active)selected=customer.id;$('newCustomer').value='';render();}});
+$('customer').addEventListener('change',()=>{selected=$('customer').value;render();});
+$('clock').addEventListener('click',()=>{if(blocked||!selected)return;const now=Date.now();if(state.active){if(now<state.active.start){notice('Klockan går före passets start. Kontrollera enhetens tid.');return;}save({...state,active:null,sessions:[...state.sessions,{id:uid(),...state.active,end:now}]});}else save({...state,active:{customer:selected,start:now}});});
+for(const [id,delta] of [['prev',-1],['next',1]])$(id).addEventListener('click',()=>{month=new Date(month.getFullYear(),month.getMonth()+delta,1);render();});
+$('export').addEventListener('click',()=>{if(blocked){notice('Lagringen kunde inte läsas. Export av tom data är avstängd.');return;}const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sw-calendar-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);});
+$('import').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async()=>{const file=$('importFile').files[0];$('importFile').value='';if(!file)return;try{if(file.size>5000000)throw Error();const next=validate(JSON.parse(await file.text()));if(confirm('Ersätta all sparad data med säkerhetskopian? Ett pågående pass kan ändras.'))save(next,true);}catch(e){notice('Ogiltig importfil. Ingen data har ändrats.');}});
+window.addEventListener('storage',e=>{if(e.key===KEY){blocked=true;notice('Data ändrades i en annan flik. Ladda om innan du fortsätter.');render();}});
+render();setInterval(tick,1000);
+</script>
+</html>
