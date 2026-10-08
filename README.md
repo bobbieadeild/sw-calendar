@@ -30,8 +30,14 @@ and JSON backup paths. Earlier backups without comments remain importable.
 Use “Lägg till tid i efterhand” for a missed clock-in: select the customer, enter
 local start/end dates and times and optionally a comment. Save adds one completed
 pass to calendar/totals/backups. End must follow start; overlapping passes for
-the same customer are rejected. Enter uninterrupted work only for now; pause
-entry is a separate upcoming feature. Existing browser-only storage limits apply.
+the same customer are rejected. Existing browser-only storage limits apply.
+
+On a completed session, add a pause with its own local start/end date and time.
+Pauses must stay inside that session and cannot overlap. The session, day and
+month totals show net worked time; a pause across midnight is split between days.
+Use “Ta bort paus” to correct an entry. Pauses are retained in JSON backups;
+older backups without pauses remain valid. Pauses on a currently running session
+can be entered after clocking out.
 
 Run `node test.cjs`: syntax, backup validation/round trip, duplicate IDs, invalid
 timestamps/customer references and cross-midnight interval accounting. Desktop
