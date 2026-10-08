@@ -15,6 +15,8 @@
 <div id="timer" class="timer">00:00:00</div><div id="running" class="muted">Redo för ett nytt arbetspass</div><button id="clock" class="primary">Stämpla in</button></section>
 <section class="card"><div class="row"><h2 style="flex:1">Månadskalender</h2><button id="prev" aria-label="Föregående månad">‹</button><button id="next" aria-label="Nästa månad">›</button></div><p id="monthLabel"></p><div id="calendar" class="grid"></div><p class="muted">Avslutade pass för vald kund, fördelade över lokala kalenderdagar.</p><div id="total" class="total"></div></section>
 <section class="card"><h2>Arbetspass</h2><div id="sessions"></div></section>
+<section class="card"><h2>Lägg till tid i efterhand</h2><p class="muted">För vald kund. Ange ett sammanhängande arbetspass utan paus. Datum och tid följer enhetens lokala tidszon.</p>
+<form id="manualForm"><label for="manualStart">Start</label><input id="manualStart" type="datetime-local" required><label for="manualEnd" style="margin-top:12px">Slut</label><input id="manualEnd" type="datetime-local" required><label for="manualComment" style="margin-top:12px">Kommentar (valfritt)</label><input id="manualComment" maxlength="2000"><button id="manualSave" class="primary">Spara arbetspass</button></form></section>
 <section class="card"><h2>Säkerhetskopia</h2><p class="muted">Exportera regelbundet. Rensad webbläsardata kan ta bort dina tider. Import ersätter den sparade informationen.</p><div class="backup"><button id="export">Exportera JSON</button><button id="import">Importera JSON</button></div><input id="importFile" type="file" accept="application/json,.json"></section>
 <footer>Lokal prototyp · Ingen Google-sync eller delning mellan enheter. Använd en webbläsarflik åt gången. Test med verklig iPhone återstår.</footer>
 </main>
@@ -34,6 +36,19 @@ function validate(value){
  return {version:1,customers,sessions,active};
 }
 function overlap(s,start,end){return Math.max(0,Math.min(s.end,end)-Math.max(s.start,start));}
+function localTime(text){
+ if(typeof text!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text))throw Error('Ange giltigt datum och tid.');
+ const parts=text.split(/[-T:]/).map(Number),d=new Date(text);
+ if(!Number.isFinite(+d)||[d.getFullYear(),d.getMonth()+1,d.getDate(),d.getHours(),d.getMinutes()].some((v,i)=>v!==parts[i]))throw Error('Datumet eller tiden finns inte i enhetens tidszon.');
+ return +d;
+}
+function manualSession(current,session){
+ const next=validate({...current,sessions:[...current.sessions,session]});
+ if(session.end<=session.start)throw Error('Sluttiden måste vara efter starttiden.');
+ if(current.sessions.some(s=>s.customer===session.customer&&overlap(s,session.start,session.end)>0))throw Error('Tiden överlappar ett sparat arbetspass för kunden.');
+ if(current.active?.customer===session.customer&&session.end>current.active.start)throw Error('Tiden överlappar kundens pågående arbetspass.');
+ return next;
+}
 const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 const $=id=>document.getElementById(id), duration=ms=>{const m=Math.floor(ms/60000);return `${Math.floor(m/60)} h ${m%60} min`;};
 let state=empty(), selected='', raw=null, blocked=false, month=new Date();month=new Date(month.getFullYear(),month.getMonth(),1);
@@ -46,6 +61,7 @@ function render(){
  if(!state.customers.some(c=>c.id===selected))selected=state.active?.customer||state.customers[0]?.id||'';
  $('customer').replaceChildren();for(const c of state.customers){const o=document.createElement('option');o.value=c.id;o.textContent=c.name;$('customer').append(o);}$('customer').value=selected;
  $('customer').disabled=!!state.active||blocked;$('clock').disabled=blocked||!selected;$('clock').textContent=state.active?'Stämpla ut':'Stämpla in';$('clock').classList.toggle('stop',!!state.active);$('addForm').querySelector('button').disabled=blocked;
+ $('manualSave').disabled=blocked||!selected;
  $('monthLabel').textContent=month.toLocaleDateString('sv-SE',{month:'long',year:'numeric'});
  const end=new Date(month.getFullYear(),month.getMonth()+1,1), sessions=state.sessions.filter(s=>s.customer===selected);
  $('total').textContent=duration(sessions.reduce((n,s)=>n+overlap(s,+month,+end),0));$('calendar').replaceChildren();
@@ -59,6 +75,7 @@ function render(){
 function tick(){const ms=state.active?Math.max(0,Date.now()-state.active.start):0;const sec=Math.floor(ms/1000);$('timer').textContent=[Math.floor(sec/3600),Math.floor(sec/60)%60,sec%60].map(n=>String(n).padStart(2,'0')).join(':');$('running').textContent=state.active?'Pågår · '+state.customers.find(c=>c.id===state.active.customer).name:'Redo för ett nytt arbetspass';}
 $('addForm').addEventListener('submit',e=>{e.preventDefault();if(blocked)return;const name=$('newCustomer').value.trim();if(!name)return;const customer={id:uid(),name};if(save({...state,customers:[...state.customers,customer]})){if(!state.active)selected=customer.id;$('newCustomer').value='';render();}});
 $('customer').addEventListener('change',()=>{selected=$('customer').value;render();});
+$('manualForm').addEventListener('submit',e=>{e.preventDefault();if(blocked||!selected)return;try{const session={id:uid(),customer:selected,start:localTime($('manualStart').value),end:localTime($('manualEnd').value),comment:$('manualComment').value};const next=manualSession(state,session);if(save(next)){month=new Date(new Date(session.start).getFullYear(),new Date(session.start).getMonth(),1);$('manualForm').reset();render();notice('Arbetspasset är sparat i den här webbläsaren.');}}catch(error){notice(error.message);}});
 $('clock').addEventListener('click',()=>{if(blocked||!selected)return;const now=Date.now();if(state.active){if(now<state.active.start){notice('Klockan går före passets start. Kontrollera enhetens tid.');return;}save({...state,active:null,sessions:[...state.sessions,{id:uid(),...state.active,end:now}]});}else save({...state,active:{customer:selected,start:now}});});
 for(const [id,delta] of [['prev',-1],['next',1]])$(id).addEventListener('click',()=>{month=new Date(month.getFullYear(),month.getMonth()+delta,1);render();});
 $('export').addEventListener('click',()=>{if(blocked){notice('Lagringen kunde inte läsas. Export av tom data är avstängd.');return;}const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sw-calendar-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);});
