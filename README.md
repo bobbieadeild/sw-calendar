@@ -42,6 +42,11 @@ Use “Ta bort paus” to correct an entry. Pauses are retained in JSON backups;
 older backups without pauses remain valid. Pauses on a currently running session
 can be entered after clocking out.
 
+Use “Ta bort arbetspass” on a completed session to correct a mistaken entry.
+Confirm the displayed customer/start/end before deletion; cancelling preserves
+everything. Its comment and pauses are removed with it and totals update. Export
+a JSON backup first if you may need to restore it. Active work is unaffected.
+
 Run `node test.cjs`: syntax, backup validation/round trip, duplicate IDs, invalid
 timestamps/customer references and cross-midnight interval accounting. Desktop
 browser checks cover customer creation, active-pass reload and completed-pass
