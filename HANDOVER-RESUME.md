@@ -123,3 +123,21 @@ other/customer/active data, unchanged original snapshot and JSON round trip.
 Actual confirmation/form interaction and Safari acceptance remain pending.
 Deletion has no undo UI; restore requires a previous JSON backup. No real user
 session was deleted by the agent. No merge, deployment, paid call or email send.
+
+## SW-008 receipt — employee selection and mobile flow
+
+- [x] Create/select local employee numbers; retain leading zeros and prevent duplicates
+- [x] Associate new clock/manual passes with the selected number
+- [x] Filter calendar/pass list by employee and customer; preserve unassigned legacy data
+- [x] Numeric time entry: 930/0930 → 09:30, 9 → 09:00; invalid times stay rejected
+- [x] Flow: employee → timer → calendar → manual entry → backup
+- [x] Node syntax/data checks and interactive 320px/390px browser acceptance
+- [ ] Real iPhone Safari acceptance and human review/integration
+
+Browser fixture: employee 0012/customer Mobilprov, 09:30–17:00 saved from numeric
+input; 12:00–12:30 pause gives 7h net. Employee 0013 shows no such pass. Reload
+and reselect 0012 restores 7h. At 320px and 390px no horizontal overflow was detected; duplicate employee creation was rejected in the UI.
+This is browser viewport validation, not physical Safari verification. Employee
+numbers are identifiers, not login credentials. Existing JSON backups remain
+valid and older sessions are not assigned automatically. No deployment, merge,
+paid model call or email send. Stacked review branch: sw-008/employee-mobile-flow.
