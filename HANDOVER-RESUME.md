@@ -21,7 +21,8 @@ Use that public scope reference; keep the original email and sender data private
 - [ ] Backend login and customer hosting
 - [ ] Server saves every five minutes and daily/weekly/monthly/yearly backups
 - [ ] Validate the requested 3-2-1 backup arrangement; retention/restore policy
-- [ ] Retrospective entry of work times and breaks
+- [x] SW-004: retrospective work time entry — draft
+- [ ] Retrospective breaks
 
 ## SW-002 receipt
 
@@ -58,3 +59,22 @@ Validation: white text on the selected red has computed contrast 4.60:1;
 existing Node syntax/data checks still pass. Device/visual acceptance remains
 pending. No new behavior, merge, deployment, model call or email sending.
 Human review of the theme draft is next; original public app is unchanged.
+
+## SW-004 receipt — manual time entry
+
+For the selected customer, enter local start/end date and time and an optional
+comment, then save. The completed session appears in the existing calendar,
+totals and JSON backups; the view moves to its start month. Previous sessions
+are preserved. Invalid local dates, zero/reversed durations and overlap with
+that customer's completed/active session reject before save. Adjacent sessions
+and simultaneous entries for different customers remain allowed. Local storage
+failure/conflict handling is reused. No server save is implied.
+
+The neutral background is `#f5f5f5`; the palette remains red/black/white.
+Validation: Node syntax/data checks pass, including manual entry/comment backup
+round trip, unchanged previous data, customer-scoped overlap/active conflict,
+adjacent intervals, invalid calendar dates and existing midnight accounting.
+Actual browser form interaction and Safari/device acceptance remain pending.
+Ambiguous autumn clock-change times use the browser's local Date interpretation;
+no time-zone selection is added. Pauses remain the next bounded criterion.
+No merge, deployment, model call or email sending. Human review pending.

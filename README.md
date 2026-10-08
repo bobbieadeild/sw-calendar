@@ -27,6 +27,12 @@ Completed work sessions now have a plain-text comment field (up to 2,000
 characters) and a Save comment button. Comments follow the existing local save
 and JSON backup paths. Earlier backups without comments remain importable.
 
+Use “Lägg till tid i efterhand” for a missed clock-in: select the customer, enter
+local start/end dates and times and optionally a comment. Save adds one completed
+pass to calendar/totals/backups. End must follow start; overlapping passes for
+the same customer are rejected. Enter uninterrupted work only for now; pause
+entry is a separate upcoming feature. Existing browser-only storage limits apply.
+
 Run `node test.cjs`: syntax, backup validation/round trip, duplicate IDs, invalid
 timestamps/customer references and cross-midnight interval accounting. Desktop
 browser checks cover customer creation, active-pass reload and completed-pass
