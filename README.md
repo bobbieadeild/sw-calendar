@@ -31,6 +31,9 @@ Use “Lägg till tid i efterhand” for a missed clock-in: select the customer,
 local start/end dates and times and optionally a comment. Save adds one completed
 pass to calendar/totals/backups. End must follow start; overlapping passes for
 the same customer are rejected. Existing browser-only storage limits apply.
+Time entry uses explicit 24-hour text fields, `HH:MM` (for example `09:00` or
+`17:30`), with separate dates. AM/PM is not used. Saved pass/pause timestamps
+also display with an explicit 24-hour clock.
 
 On a completed session, add a pause with its own local start/end date and time.
 Pauses must stay inside that session and cannot overlap. The session, day and
