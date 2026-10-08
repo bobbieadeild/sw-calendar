@@ -30,12 +30,26 @@ function validate(value){
  const id=x=>typeof x==='string'&&x.length>0&&x.length<=100;
  const time=x=>Number.isSafeInteger(x)&&x>=0&&x<=8640000000000000;
  const customers=value.customers.map(c=>{if(!c||!id(c.id)||ids.has(c.id)||typeof c.name!=='string'||!c.name.trim()||c.name.length>80)throw Error('Ogiltig kund.');ids.add(c.id);return{id:c.id,name:c.name.trim()};});
- const sessions=value.sessions.map(s=>{if(!s||!id(s.id)||sessionIds.has(s.id)||!ids.has(s.customer)||!time(s.start)||!time(s.end)||s.end<s.start|| (s.comment!==undefined&&(typeof s.comment!=='string'||s.comment.length>2000)))throw Error('Ogiltigt arbetspass.');sessionIds.add(s.id);return{id:s.id,customer:s.customer,start:s.start,end:s.end,...(s.comment===undefined?{}:{comment:s.comment})};});
+ const sessions=value.sessions.map(s=>{
+  if(!s||!id(s.id)||sessionIds.has(s.id)||!ids.has(s.customer)||!time(s.start)||!time(s.end)||s.end<s.start|| (s.comment!==undefined&&(typeof s.comment!=='string'||s.comment.length>2000)))throw Error('Ogiltigt arbetspass.');
+  let breaks;
+  if(s.breaks!==undefined){
+   if(!Array.isArray(s.breaks)||s.breaks.length>100)throw Error('Ogiltiga pauser.');
+   breaks=s.breaks.map(b=>{if(!b||!time(b.start)||!time(b.end)||b.end<=b.start||b.start<s.start||b.end>s.end)throw Error('Pausen måste ligga inom arbetspasset och ha slut efter start.');return{start:b.start,end:b.end};}).sort((a,b)=>a.start-b.start);
+   if(breaks.some((b,i)=>i>0&&b.start<breaks[i-1].end))throw Error('Pauser får inte överlappa varandra.');
+  }
+  sessionIds.add(s.id);return{id:s.id,customer:s.customer,start:s.start,end:s.end,...(s.comment===undefined?{}:{comment:s.comment}),...(breaks===undefined?{}:{breaks})};
+ });
  let active=null;
  if(value.active!==null){const a=value.active;if(!a||!ids.has(a.customer)||!time(a.start))throw Error('Ogiltigt aktivt pass.');active={customer:a.customer,start:a.start};}
  return {version:1,customers,sessions,active};
 }
-function overlap(s,start,end){return Math.max(0,Math.min(s.end,end)-Math.max(s.start,start));}
+function intervalOverlap(s,start,end){return Math.max(0,Math.min(s.end,end)-Math.max(s.start,start));}
+function overlap(s,start,end){return intervalOverlap(s,start,end)-(s.breaks||[]).reduce((n,b)=>n+intervalOverlap(b,start,end),0);}
+function addBreak(current,sessionId,pause){
+ if(!current.sessions.some(s=>s.id===sessionId))throw Error('Arbetspasset finns inte.');
+ return validate({...current,sessions:current.sessions.map(s=>s.id===sessionId?{...s,breaks:[...(s.breaks||[]),pause]}:s)});
+}
 function localTime(text){
  if(typeof text!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text))throw Error('Ange giltigt datum och tid.');
  const parts=text.split(/[-T:]/).map(Number),d=new Date(text);
@@ -45,7 +59,7 @@ function localTime(text){
 function manualSession(current,session){
  const next=validate({...current,sessions:[...current.sessions,session]});
  if(session.end<=session.start)throw Error('Sluttiden måste vara efter starttiden.');
- if(current.sessions.some(s=>s.customer===session.customer&&overlap(s,session.start,session.end)>0))throw Error('Tiden överlappar ett sparat arbetspass för kunden.');
+ if(current.sessions.some(s=>s.customer===session.customer&&intervalOverlap(s,session.start,session.end)>0))throw Error('Tiden överlappar ett sparat arbetspass för kunden.');
  if(current.active?.customer===session.customer&&session.end>current.active.start)throw Error('Tiden överlappar kundens pågående arbetspass.');
  return next;
 }
@@ -70,7 +84,28 @@ function render(){
  const today=new Date();for(let day=1;day<=new Date(month.getFullYear(),month.getMonth()+1,0).getDate();day++){const start=new Date(month.getFullYear(),month.getMonth(),day),stop=new Date(month.getFullYear(),month.getMonth(),day+1);const e=document.createElement('div');e.className='day';if(start.toDateString()===today.toDateString())e.classList.add('today');e.textContent=day;const small=document.createElement('small'),ms=sessions.reduce((n,s)=>n+overlap(s,+start,+stop),0);small.textContent=ms?duration(ms):'—';e.append(small);$('calendar').append(e);}
  $('sessions').replaceChildren();const visible=sessions.filter(s=>s.start<+end&&s.end>=+month).sort((a,b)=>b.start-a.start);
  if(!visible.length)$('sessions').textContent='Inga avslutade pass för den här kunden och månaden.';
- for(const s of visible){const e=document.createElement('div');e.className='session';const title=document.createElement('strong');title.textContent=duration(s.end-s.start);const detail=document.createElement('small');detail.textContent=new Date(s.start).toLocaleString('sv-SE')+' → '+new Date(s.end).toLocaleString('sv-SE');const label=document.createElement('label');label.textContent='Kommentar till arbetspasset';const comment=document.createElement('textarea');comment.maxLength=2000;comment.rows=3;comment.value=s.comment||'';comment.disabled=blocked;comment.style.cssText='width:100%;font:inherit;padding:10px;border:1px solid #b5b5b5;border-radius:10px;resize:vertical';label.append(comment);const button=document.createElement('button');button.textContent='Spara kommentar';button.disabled=blocked;button.addEventListener('click',()=>{if(blocked)return;if(save({...state,sessions:state.sessions.map(item=>item.id===s.id?{...item,comment:comment.value}:item)}))notice('Kommentaren är sparad i den här webbläsaren.');});e.append(title,detail,label,button);$('sessions').append(e);}tick();
+ for(const s of visible)$('sessions').append(sessionRow(s));tick();
+}
+function sessionRow(s){
+ const e=document.createElement('div');e.className='session';
+ const title=document.createElement('strong');title.textContent=duration(overlap(s,s.start,s.end))+' arbetad tid';
+ const detail=document.createElement('small');detail.textContent=new Date(s.start).toLocaleString('sv-SE')+' → '+new Date(s.end).toLocaleString('sv-SE');
+ const label=document.createElement('label');label.textContent='Kommentar till arbetspasset';
+ const comment=document.createElement('textarea');comment.maxLength=2000;comment.rows=3;comment.value=s.comment||'';comment.disabled=blocked;comment.style.cssText='width:100%;font:inherit;padding:10px;border:1px solid #b5b5b5;border-radius:10px;resize:vertical';label.append(comment);
+ const button=document.createElement('button');button.textContent='Spara kommentar';button.disabled=blocked;
+ button.addEventListener('click',()=>{if(blocked)return;if(save({...state,sessions:state.sessions.map(item=>item.id===s.id?{...item,comment:comment.value}:item)}))notice('Kommentaren är sparad i den här webbläsaren.');});
+ e.append(title,detail,label,button);
+ const heading=document.createElement('p');heading.textContent='Pauser dras av från arbetstiden.';e.append(heading);
+ for(const [index,b] of (s.breaks||[]).entries()){
+  const row=document.createElement('p');row.textContent=new Date(b.start).toLocaleString('sv-SE')+' → '+new Date(b.end).toLocaleString('sv-SE')+' · '+duration(b.end-b.start)+' ';
+  const remove=document.createElement('button');remove.textContent='Ta bort paus';remove.disabled=blocked;
+  remove.addEventListener('click',()=>{if(blocked)return;save({...state,sessions:state.sessions.map(item=>item.id===s.id?{...item,breaks:item.breaks.filter((_,i)=>i!==index)}:item)});});row.append(remove);e.append(row);
+ }
+ const form=document.createElement('form'),start=document.createElement('input'),end=document.createElement('input');
+ for(const [input,text] of [[start,'Pausens start'],[end,'Pausens slut']]){const l=document.createElement('label');l.textContent=text;input.type='datetime-local';input.required=true;input.disabled=blocked;l.append(input);form.append(l);}
+ const submit=document.createElement('button');submit.textContent='Lägg till paus';submit.disabled=blocked;form.append(submit);
+ form.addEventListener('submit',event=>{event.preventDefault();if(blocked)return;try{if(save(addBreak(state,s.id,{start:localTime(start.value),end:localTime(end.value)})))notice('Pausen är sparad och avdragen från arbetstiden.');}catch(error){notice(error.message);}});
+ e.append(form);return e;
 }
 function tick(){const ms=state.active?Math.max(0,Date.now()-state.active.start):0;const sec=Math.floor(ms/1000);$('timer').textContent=[Math.floor(sec/3600),Math.floor(sec/60)%60,sec%60].map(n=>String(n).padStart(2,'0')).join(':');$('running').textContent=state.active?'Pågår · '+state.customers.find(c=>c.id===state.active.customer).name:'Redo för ett nytt arbetspass';}
 $('addForm').addEventListener('submit',e=>{e.preventDefault();if(blocked)return;const name=$('newCustomer').value.trim();if(!name)return;const customer={id:uid(),name};if(save({...state,customers:[...state.customers,customer]})){if(!state.active)selected=customer.id;$('newCustomer').value='';render();}});

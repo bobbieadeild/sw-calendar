@@ -22,7 +22,7 @@ Use that public scope reference; keep the original email and sender data private
 - [ ] Server saves every five minutes and daily/weekly/monthly/yearly backups
 - [ ] Validate the requested 3-2-1 backup arrangement; retention/restore policy
 - [x] SW-004: retrospective work time entry — draft
-- [ ] Retrospective breaks
+- [x] SW-005: add/remove retrospective pauses on completed sessions — draft
 
 ## SW-002 receipt
 
@@ -78,3 +78,23 @@ Actual browser form interaction and Safari/device acceptance remain pending.
 Ambiguous autumn clock-change times use the browser's local Date interpretation;
 no time-zone selection is added. Pauses remain the next bounded criterion.
 No merge, deployment, model call or email sending. Human review pending.
+
+## SW-005 receipt — manual pauses
+
+Completed sessions accept multiple start/end pauses and allow removal to correct
+an entry. Validation requires each pause inside its session, positive duration,
+no overlaps and at most 100 pauses per session. Adjacent pauses are permitted.
+Net worked time subtracts the actual pause interval in session/day/month totals,
+including cross-midnight pauses. Existing manual-session overlap checks use the
+whole pass, so another work entry cannot silently fill its recorded break.
+
+Pauses follow existing local persistence/conflict handling and JSON backup
+validation. Legacy backups without pauses and comments remain compatible.
+Node syntax/data checks pass for pause round trip, preserved original data,
+out-of-bounds/overlapping/duplicate/invalid pause rejection and cross-midnight
+net accounting. A local browser review attempt timed out before loading the
+preview, so actual form/UI/Safari acceptance is still unverified. The temporary
+preview server was stopped. No deployment or customer storage was touched.
+
+Human review pending. Backend login, server saves and backup/restore policies
+remain in the original email scope; they are not replaced by this local alpha.
