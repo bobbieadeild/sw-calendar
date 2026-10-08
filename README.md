@@ -17,7 +17,7 @@ local to the computer: it cannot be opened on an iPhone to reach this computer.
 Do not use direct file opening for acceptance: storage/download behavior differs.
 Public customer-test hosting is authorized on GitHub Pages. Open the published site in Safari; real iPhone acceptance remains pending.
 
-Add a demo customer, clock in, reload, clock out and reload again. Change month
+Create/select a demo employee number and add a demo customer, clock in, reload, clock out and reload again. Change month
 and customer to inspect completed totals. Export regularly; import validates the
 whole backup and asks before replacing existing data. Browser-cleared storage is
 not recoverable without a backup. Use one browser tab and device; no shared state.
@@ -27,13 +27,13 @@ Completed work sessions now have a plain-text comment field (up to 2,000
 characters) and a Save comment button. Comments follow the existing local save
 and JSON backup paths. Earlier backups without comments remain importable.
 
-Use “Lägg till tid i efterhand” for a missed clock-in: select the customer, enter
+Use “Lägg till tid i efterhand” for a missed clock-in: select the employee number and customer, enter
 local start/end dates and times and optionally a comment. Save adds one completed
 pass to calendar/totals/backups. End must follow start; overlapping passes for
-the same customer are rejected. Existing browser-only storage limits apply.
+the same employee are rejected, even across customers. Existing browser-only storage limits apply.
 Time entry uses explicit 24-hour text fields, `HH:MM` (for example `09:00` or
 `17:30`), with separate dates. AM/PM is not used. Saved pass/pause timestamps
-also display with an explicit 24-hour clock.
+also display with an explicit 24-hour clock. Numeric entry accepts 930/0930 as 09:30 and 9 as 09:00 (normalized when leaving the field). Invalid times are rejected.
 
 On a completed session, add a pause with its own local start/end date and time.
 Pauses must stay inside that session and cannot overlap. The session, day and
@@ -56,3 +56,7 @@ certification. Real iPhone Safari acceptance and customer feedback remain pendin
 Task: https://trello.com/c/WspYgj1Y
 Portfolio: https://trello.com/c/KtjimVD8
 Repository not yet chosen. Keep this prototype separate from AUTOPRODUCER code.
+
+Employee numbers are local numeric identifiers (1–20 digits), not authentication. Leading zeros are retained. New passes require a selected number; calendar totals filter by number and customer. Older unassigned passes remain accessible through the legacy selector option and are never silently reassigned. Backups preserve the registry and assignments.
+
+Flow: employee number → timer/customer → calendar (expand saved passes) → manual time → backup. Browser checks at 320 and 390 pixels complement, but do not replace, real iPhone Safari acceptance.
