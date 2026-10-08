@@ -23,6 +23,7 @@ Use that public scope reference; keep the original email and sender data private
 - [ ] Validate the requested 3-2-1 backup arrangement; retention/restore policy
 - [x] SW-004: retrospective work time entry — draft
 - [x] SW-005: add/remove retrospective pauses on completed sessions — draft
+- [x] SW-006: explicit 24-hour input/display for work and pauses — draft
 
 ## SW-002 receipt
 
@@ -98,3 +99,12 @@ preview server was stopped. No deployment or customer storage was touched.
 
 Human review pending. Backend login, server saves and backup/restore policies
 remain in the original email scope; they are not replaced by this local alpha.
+
+## SW-006 receipt — 24-hour clock
+
+Replaced native datetime-local widgets, whose AM/PM presentation depends on the
+browser/OS, with separate date and explicit `HH:MM` text fields for sessions and
+pauses. Required patterns and existing parsing accept 00:00–23:59 and preserve
+local-date validation. Saved timestamps explicitly use the h23 display cycle.
+No stored timestamp/data schema change. Existing syntax/data checks pass;
+actual browser/device acceptance remains pending. No merge or deployment.
