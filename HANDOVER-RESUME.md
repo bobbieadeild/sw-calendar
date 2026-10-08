@@ -141,3 +141,29 @@ This is browser viewport validation, not physical Safari verification. Employee
 numbers are identifiers, not login credentials. Existing JSON backups remain
 valid and older sessions are not assigned automatically. No deployment, merge,
 paid model call or email send. Stacked review branch: sw-008/employee-mobile-flow.
+
+## SW-009 receipt — customer deletion and dated backups
+
+- [x] Comments already persisted in localStorage and JSON; confirmed download/import round trip
+- [x] exportedAt UTC timestamp inside JSON and timestamped filenames
+- [x] Customer deletion panel normally hidden; warning expands only when invoked
+- [x] Exact DELETE required; cancel preserves data; warning describes all employees' passes
+- [x] Active work blocks deletion; other customers/active work preserved by data checks
+- [x] Browser fixture deleted and restored from the downloaded backup, including comment and pause
+- [ ] Real Safari acceptance and release integration
+- [ ] Later: optional Google Drive app-folder backup on opening, OAuth, failure/retention/restore rules
+
+Storage is persistent localStorage, not only cache; clearing website data can remove
+it. Google Drive sync is deferred to keep this alpha bounded and requires a new
+account authorization and service integration. No such authorization is requested
+in this step. Dated JSON can be saved manually to Drive meanwhile.
+
+Release preparation: SW-009 stacks all requested alpha changes through SW-008.
+The existing Safari test address is https://bobbieadeild.github.io/sw-calendar/.
+Git publication of this review branch is not a live update. Earlier explicit
+no-merge instruction still requires approval for integrating these drafts.
+Mail Responder currently has read-only Gmail transport and private unsent drafts;
+actual sending is not implemented/authorized through that transport. User has
+requested sending the update after the new version is available. Do not send an
+old-version link or claim this module sent a message. Prepare delivery after
+integration/publication, then implement/authorize the dedicated sending capability.

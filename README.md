@@ -60,3 +60,13 @@ Repository not yet chosen. Keep this prototype separate from AUTOPRODUCER code.
 Employee numbers are local numeric identifiers (1–20 digits), not authentication. Leading zeros are retained. New passes require a selected number; calendar totals filter by number and customer. Older unassigned passes remain accessible through the legacy selector option and are never silently reassigned. Backups preserve the registry and assignments.
 
 Flow: employee number → timer/customer → calendar (expand saved passes) → manual time → backup. Browser checks at 320 and 390 pixels complement, but do not replace, real iPhone Safari acceptance.
+
+JSON export includes comments, pauses and employee assignments, plus exportedAt
+(UTC), with a timestamped filename. Saved data uses localStorage; it survives normal
+reloads but can be lost when website data is cleared. Optional Google Drive backup
+is a future milestone. You can manually keep downloaded JSON files in Drive today.
+
+“Radera kund” expands an otherwise hidden warning. Type exact DELETE to enable
+removal of the customer and all its completed sessions/comments/pauses across
+employee numbers. Cancel closes it without changes. Clock out before deletion;
+export first to make recovery possible. The downloaded backup restores deleted data.
