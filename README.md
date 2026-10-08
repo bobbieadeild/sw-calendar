@@ -1,5 +1,9 @@
 # SW Calendar — local customer-test prototype
 
+Current feedback scope and checkpoints: [Handover / Resume](HANDOVER-RESUME.md).
+Development resumed on 9 October from Bobbie's selected email. Draft changes
+require review; this branch does not update the previously published live app.
+
 Single-file Swedish time clock for iPhone-sized screens. Customer selection,
 clock in/out, persisted active/completed sessions, month calendar and JSON backups.
 No dependencies, accounts, Google sync, deployment or external requests.
@@ -17,6 +21,10 @@ and customer to inspect completed totals. Export regularly; import validates the
 whole backup and asks before replacing existing data. Browser-cleared storage is
 not recoverable without a backup. Use one browser tab and device; no shared state.
 Times use device wall clock and local timezone; totals display whole minutes.
+
+Completed work sessions now have a plain-text comment field (up to 2,000
+characters) and a Save comment button. Comments follow the existing local save
+and JSON backup paths. Earlier backups without comments remain importable.
 
 Run `node test.cjs`: syntax, backup validation/round trip, duplicate IDs, invalid
 timestamps/customer references and cross-midnight interval accounting. Desktop

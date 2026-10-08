@@ -7,6 +7,11 @@ const context={};vm.createContext(context);vm.runInContext(core+';this.check=val
 const data={version:1,customers:[{id:'c1',name:'Example'}],sessions:[{id:'s1',customer:'c1',start:1000,end:5000}],active:{customer:'c1',start:6000}};
 assert.equal(context.check(JSON.parse(JSON.stringify(data))).active.start,6000);
 assert.deepEqual(JSON.parse(JSON.stringify(context.check(data))),data);
+const withComment={...data,sessions:[{...data.sessions[0],comment:'Kundmöte <script>är vanlig text</script>\nUppföljning.'}]};
+assert.deepEqual(JSON.parse(JSON.stringify(context.check(JSON.parse(JSON.stringify(withComment))))),withComment);
+assert.equal(context.check({...data,sessions:[{...data.sessions[0],comment:''}]}).sessions[0].comment,'');
+for(const comment of [null,3,{},'x'.repeat(2001)])assert.throws(()=>context.check({...data,sessions:[{...data.sessions[0],comment}]}));
+assert.equal(context.check({...data,sessions:[{...data.sessions[0],comment:'x'.repeat(2000)}]}).sessions[0].comment.length,2000);
 for(const bad of [{...data,version:2},{...data,customers:[...data.customers,...data.customers]},
  {...data,active:{customer:'unknown',start:1}},{...data,sessions:[{...data.sessions[0],end:0}]},
  {...data,sessions:[{...data.sessions[0],start:NaN}]}, {...data,sessions:[...data.sessions,...data.sessions]}])assert.throws(()=>context.check(bad));
