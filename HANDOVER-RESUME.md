@@ -24,6 +24,7 @@ Use that public scope reference; keep the original email and sender data private
 - [x] SW-004: retrospective work time entry — draft
 - [x] SW-005: add/remove retrospective pauses on completed sessions — draft
 - [x] SW-006: explicit 24-hour input/display for work and pauses — draft
+- [x] SW-007: remove a mistaken completed work session with confirmation — draft
 
 ## SW-002 receipt
 
@@ -108,3 +109,17 @@ pauses. Required patterns and existing parsing accept 00:00–23:59 and preserve
 local-date validation. Saved timestamps explicitly use the h23 display cycle.
 No stored timestamp/data schema change. Existing syntax/data checks pass;
 actual browser/device acceptance remains pending. No merge or deployment.
+
+## SW-007 receipt — remove a mistaken work session
+
+Each completed session has a delete button. Confirmation identifies customer
+and 24-hour start/end and explains that its comment/pauses are removed too;
+cancellation performs no save. The existing validated local save path updates
+calendar/totals only after successful persistence. Customers, other sessions and
+an active clocked-in pass remain unchanged. No wider redesign.
+
+Node syntax/data checks pass, including targeted removal with pauses, preserved
+other/customer/active data, unchanged original snapshot and JSON round trip.
+Actual confirmation/form interaction and Safari acceptance remain pending.
+Deletion has no undo UI; restore requires a previous JSON backup. No real user
+session was deleted by the agent. No merge, deployment, paid call or email send.

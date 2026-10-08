@@ -50,6 +50,10 @@ function addBreak(current,sessionId,pause){
  if(!current.sessions.some(s=>s.id===sessionId))throw Error('Arbetspasset finns inte.');
  return validate({...current,sessions:current.sessions.map(s=>s.id===sessionId?{...s,breaks:[...(s.breaks||[]),pause]}:s)});
 }
+function removeSession(current,sessionId){
+ if(!current.sessions.some(s=>s.id===sessionId))throw Error('Arbetspasset finns inte.');
+ return validate({...current,sessions:current.sessions.filter(s=>s.id!==sessionId)});
+}
 function localTime(text){
  if(typeof text!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text))throw Error('Ange giltigt datum och tid.');
  const parts=text.split(/[-T:]/).map(Number),d=new Date(text);
@@ -106,7 +110,9 @@ function sessionRow(s){
  for(const [input,text,type] of [[startDate,'Pausens startdatum','date'],[startTime,'Pausens starttid (24 timmar, HH:MM)','text'],[endDate,'Pausens slutdatum','date'],[endTime,'Pausens sluttid (24 timmar, HH:MM)','text']]){const l=document.createElement('label');l.textContent=text;input.type=type;input.required=true;input.disabled=blocked;if(type==='text'){input.placeholder='12:30';input.maxLength=5;input.pattern='([01][0-9]|2[0-3]):[0-5][0-9]';}l.append(input);form.append(l);}
  const submit=document.createElement('button');submit.textContent='Lägg till paus';submit.disabled=blocked;form.append(submit);
  form.addEventListener('submit',event=>{event.preventDefault();if(blocked)return;try{if(save(addBreak(state,s.id,{start:localTime(startDate.value+'T'+startTime.value),end:localTime(endDate.value+'T'+endTime.value)})))notice('Pausen är sparad och avdragen från arbetstiden.');}catch(error){notice(error.message);}});
- e.append(form);return e;
+ const remove=document.createElement('button');remove.textContent='Ta bort arbetspass';remove.disabled=blocked;remove.style.marginTop='16px';
+ remove.addEventListener('click',()=>{if(blocked)return;const customer=state.customers.find(c=>c.id===s.customer);if(!confirm('Ta bort arbetspasset för '+customer.name+'?\n'+displayTime(s.start)+' → '+displayTime(s.end)+'\nKommentar och pauser tas också bort. Detta kan inte ångras utan en tidigare JSON-backup.'))return;try{if(save(removeSession(state,s.id)))notice('Arbetspasset är borttaget. Kalender och totalsummor är uppdaterade.');}catch(error){notice(error.message);}});
+ e.append(form,remove);return e;
 }
 function tick(){const ms=state.active?Math.max(0,Date.now()-state.active.start):0;const sec=Math.floor(ms/1000);$('timer').textContent=[Math.floor(sec/3600),Math.floor(sec/60)%60,sec%60].map(n=>String(n).padStart(2,'0')).join(':');$('running').textContent=state.active?'Pågår · '+state.customers.find(c=>c.id===state.active.customer).name:'Redo för ett nytt arbetspass';}
 $('addForm').addEventListener('submit',e=>{e.preventDefault();if(blocked)return;const name=$('newCustomer').value.trim();if(!name)return;const customer={id:uid(),name};if(save({...state,customers:[...state.customers,customer]})){if(!state.active)selected=customer.id;$('newCustomer').value='';render();}});
