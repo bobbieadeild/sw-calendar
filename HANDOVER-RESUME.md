@@ -16,7 +16,7 @@ Use that public scope reference; keep the original email and sender data private
 
 - [ ] Confirm Safari persistence and explain browser-cleared-data limitations
 - [ ] Verify export/import on the actual target device
-- [ ] Apply agreed SW visual theme (exact visual reference needed)
+- [x] SW-003: red/black/white theme from Bobbie's supplied company reference — draft
 - [x] SW-002: comments on completed work sessions — draft implementation
 - [ ] Backend login and customer hosting
 - [ ] Server saves every five minutes and daily/weekly/monthly/yearly backups
@@ -45,3 +45,16 @@ not claim an unattended Mail Responder worker executed the project.
 Next bounded customer criterion: retrospective work/break entry. Backend login,
 server storage and backups need separate concrete implementation/hosting scope.
 Customer-facing reply remains unsent until separately approved.
+
+## SW-003 receipt — company color reference
+
+Bobbie supplied the Södra Wättern Svets AB reference image. Its red, black and
+white palette replaces the green prototype theme: red primary action/today
+outline, dark text and stop button, white cards and neutral surfaces. Company
+name appears in the header. The image is a visual color reference, not an exact
+brand specification; the selected red is `#e71924`. No logo asset was extracted.
+
+Validation: white text on the selected red has computed contrast 4.60:1;
+existing Node syntax/data checks still pass. Device/visual acceptance remains
+pending. No new behavior, merge, deployment, model call or email sending.
+Human review of the theme draft is next; original public app is unchanged.

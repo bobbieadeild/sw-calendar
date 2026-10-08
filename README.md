@@ -3,6 +3,7 @@
 Current feedback scope and checkpoints: [Handover / Resume](HANDOVER-RESUME.md).
 Development resumed on 9 October from Bobbie's selected email. Draft changes
 require review; this branch does not update the previously published live app.
+The theme uses red, black and white from the supplied company reference.
 
 Single-file Swedish time clock for iPhone-sized screens. Customer selection,
 clock in/out, persisted active/completed sessions, month calendar and JSON backups.
