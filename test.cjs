@@ -3,7 +3,7 @@ const html=fs.readFileSync(__dirname+'/index.html','utf8');
 const script=html.split('<script>')[1].split('</script>')[0];
 new vm.Script(script);
 const core=script.slice(0,script.indexOf('const uid='));
-const context={};vm.createContext(context);vm.runInContext(core+';this.check=validate;this.overlap=overlap;this.manual=manualSession;this.localTime=localTime;this.addBreak=addBreak;this.removeSession=removeSession;this.employee=createEmployee;this.normalize=normalizeTimeText;',context);
+const context={};vm.createContext(context);vm.runInContext(core+';this.check=validate;this.overlap=overlap;this.manual=manualSession;this.localTime=localTime;this.addBreak=addBreak;this.removeSession=removeSession;this.employee=createEmployee;this.normalize=normalizeTimeText;this.removeCustomer=removeCustomer;this.exportBackup=exportBackup;',context);
 const data={version:1,customers:[{id:'c1',name:'Example'}],sessions:[{id:'s1',customer:'c1',start:1000,end:5000}],active:{customer:'c1',start:6000}};
 assert.equal(context.check(JSON.parse(JSON.stringify(data))).active.start,6000);
 assert.deepEqual(JSON.parse(JSON.stringify(context.check(data))),data);
@@ -64,3 +64,17 @@ assert.throws(()=>context.manual(assignedOther,{...manual,employee:'0012',custom
 assert.equal(context.manual(assigned,{...manual,employee:'0013',start:2000,end:3000}).sessions.length,2);
 for(const [input,expected] of [['0930','09:30'],['930','09:30'],['9','09:00'],['17','17:00'],['0000','00:00'],['2359','23:59'],[' 09:30 ','09:30'],['2460','2460'],['9pm','9pm']])assert.equal(context.normalize(input),expected);
 console.log('PASS: syntax, legacy/comment/pause backups, manual-time and pause conflicts, local dates and cross-midnight net totals');
+
+const customerData={...withComment,customers:[...data.customers,{id:'c2',name:'Keep'}],sessions:[...withComment.sessions,{id:'s2',customer:'c2',start:20,end:30,comment:'Keep me'}],active:{customer:'c2',start:50}};
+for(const token of ['', 'delete', 'DELETE '])assert.throws(()=>context.removeCustomer(customerData,'c1',token));
+assert.throws(()=>context.removeCustomer(customerData,'c2','DELETE'));
+assert.throws(()=>context.removeCustomer(customerData,'missing','DELETE'));
+const deleted=context.removeCustomer(customerData,'c1','DELETE');
+assert.equal(deleted.customers.length,1);assert.equal(deleted.customers[0].id,'c2');
+assert.equal(deleted.sessions.length,1);assert.equal(deleted.sessions[0].comment,'Keep me');
+assert.equal(deleted.active.customer,'c2');assert.equal(customerData.sessions.length,2);
+const exported=context.exportBackup(customerData,new Date('2026-10-09T00:00:00Z'));
+assert.equal(exported.exportedAt,'2026-10-09T00:00:00.000Z');
+assert.equal(exported.sessions[0].comment,withComment.sessions[0].comment);
+assert.deepEqual(JSON.parse(JSON.stringify(context.check(exported))),customerData);
+console.log('PASS: typed customer deletion, active-pass protection, dated comment backup and import');
